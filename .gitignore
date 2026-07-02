@@ -1,0 +1,18 @@
+# NOTE: data/output/ is intentionally NOT ignored -- the built crosswalk
+# (parquet + CSV) is committed so consumers can use it without running R.
+
+# Secrets
+.env
+
+# R session / project droppings
+.Rhistory
+.RData
+.Rapp.history
+.Rproj.user/
+*.Rproj
+*.lock
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db

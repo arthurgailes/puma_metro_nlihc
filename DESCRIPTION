@@ -1,0 +1,24 @@
+Package: pumacbsacrosswalk
+Type: Standalone data product
+Title: PUMA-to-CBSA Crosswalk (NLIHC Gap Report 2026 Methodology)
+Version: 1.0.0
+Authors@R: person("AEI Housing Center", role = c("aut", "cre"),
+    email = "housing@aei.org")
+Description: Documents, builds, and shares the PUMA-to-CBSA crosswalk used in
+    the AEI Housing Center's replication of the NLIHC Gap Report 2026. Assigns
+    every 2022-vintage PUMA to a 2020-vintage Core-Based Statistical Area via
+    the Geocorr 2022 50-percent population rule, patches Connecticut from the
+    IPUMS MSA2023-PUMA2020 crosswalk, and flags metropolitan vs micropolitan
+    status from the OMB 2023 delineation file. Fully offline and deterministic.
+License: MIT + file LICENSE
+Depends: R (>= 4.3)
+Imports:
+    arrow,
+    dplyr,
+    here,
+    readr,
+    readxl,
+    stringr
+Suggests:
+    testthat (>= 3.0.0)
+Encoding: UTF-8
