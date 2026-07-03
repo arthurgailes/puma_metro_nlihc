@@ -43,6 +43,10 @@ CT_PUMAS_2020 <- c(
 )
 
 # --- Step 1: Geocorr 2022 (all states except Connecticut) --------------------
+# Note: readr emits a benign "one or more parsing issues" warning here -- the
+# Geocorr file's second row is a text description of each column, so the numeric
+# columns (pop20, afact) fail col_double() on that single row. We drop it with
+# slice(-1) immediately below, so the warning concerns only discarded data.
 load_geocorr <- function(geocorr_path) {
   read_csv(
     geocorr_path,

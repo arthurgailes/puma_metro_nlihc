@@ -65,3 +65,27 @@ test_that("all three geography types are represented", {
   expect_gt(sum(xw$is_micro, na.rm = TRUE), 0)                # micropolitan
   expect_gt(sum(!xw$is_metro), 0)                             # non-metro
 })
+
+test_that("known composition (this vintage: Geocorr 2022 + OMB 2023)", {
+  expect_equal(nrow(xw), 2486L)
+  expect_equal(sum(xw$is_metro & !xw$is_micro, na.rm = TRUE), 2107L) # metropolitan
+  expect_equal(sum(xw$is_micro, na.rm = TRUE), 95L)                  # micropolitan
+  expect_equal(sum(!xw$is_metro), 249L)                             # non-metro
+  expect_equal(sum(xw$statefip == "09"), 25L)                       # Connecticut
+})
+
+test_that("anchor mappings resolve to the expected CBSAs", {
+  row_for <- function(id) xw[xw$puma_id == id, , drop = FALSE]
+
+  # Limestone County, AL -> Huntsville, AL metro (100% of the PUMA)
+  hsv <- row_for("0100200")
+  expect_equal(nrow(hsv), 1L)
+  expect_equal(hsv$cbsa, "26620")
+  expect_true(hsv$is_metro)
+  expect_false(hsv$is_micro)
+
+  # Major metros should aggregate many PUMAs
+  expect_gt(sum(xw$cbsa == "35620", na.rm = TRUE), 100) # New York-Newark-Jersey City
+  expect_gt(sum(xw$cbsa == "31080", na.rm = TRUE), 50)  # Los Angeles-Long Beach-Anaheim
+  expect_gt(sum(xw$cbsa == "47900", na.rm = TRUE), 20)  # Washington-Arlington-Alexandria
+})
