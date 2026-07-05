@@ -30,8 +30,8 @@ Metropolitan PUMAs are `is_metro & !is_micro`.
 
 ## Using it
 
-Use with ACS microdata on 2020-Census PUMAs: the 2020-2024 ACS 5-year (IPUMS
-`us2024c`) and later 2020-PUMA samples.
+Use with any ACS microdata on 2020-Census PUMAs -- the 2022 ACS 1-year onward,
+or a 5-year sample such as the 2020-2024 (IPUMS `us2024c`) this was built for.
 
 Rebuild the key from IPUMS/ACS `STATEFIP` and `PUMA`, then left-join:
 
