@@ -31,9 +31,11 @@ Metropolitan PUMAs are `is_metro & !is_micro`.
 ## Using it
 
 **Join only to ACS microdata coded to 2020-Census PUMAs** -- the 2020-2024 ACS
-5-year sample this was built for (IPUMS `us2024c`), or another ACS sample that
-uses 2020 PUMAs. ACS data on the older 2010-based PUMAs (5-year samples through
-2018-2022) will not match `puma_id` and must not be used.
+5-year sample this was built for (IPUMS `us2024c`), or another ACS sample on
+2020 PUMAs. Older 2010-based-PUMA data -- every ACS 1-year through 2021 and
+5-year through 2018-2022 -- will not match `puma_id` and must not be used.
+Connecticut is the clearest tell: its pre-2022 PUMA codes are county-based and
+absent here, so a wrong-vintage join leaves every CT record unmatched.
 
 Rebuild the key from IPUMS/ACS `STATEFIP` and `PUMA`, then left-join:
 
@@ -84,8 +86,9 @@ Paths, the 50% threshold, and the Connecticut PUMA list are set in
 | Metro/micro type | 2023 | OMB delineation |
 | ACS sample | 2020-2024 5-year | IPUMS `us2024c` |
 
-The 2020-Census PUMAs used here are current for ACS samples from 2022 through
-the rest of the decade, until the 2030 reapportionment introduces new PUMAs.
+The 2020-Census PUMAs used here are current for ACS microdata built on 2020
+PUMAs -- the 2022 ACS 1-year, the 2020-2024 5-year, and later releases -- until
+the 2030 reapportionment introduces new PUMAs.
 
 Sixteen CBSAs assigned from the 2020 delineation are absent from the 2023
 delineation, so 35 PUMAs have `is_micro = NA` (metro status assigned; the
