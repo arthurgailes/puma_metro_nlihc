@@ -30,12 +30,8 @@ Metropolitan PUMAs are `is_metro & !is_micro`.
 
 ## Using it
 
-**Join only to ACS microdata coded to 2020-Census PUMAs** -- the 2020-2024 ACS
-5-year sample this was built for (IPUMS `us2024c`), or another ACS sample on
-2020 PUMAs. Older 2010-based-PUMA data -- every ACS 1-year through 2021 and
-5-year through 2018-2022 -- will not match `puma_id` and must not be used.
-Connecticut is the clearest tell: its pre-2022 PUMA codes are county-based and
-absent here, so a wrong-vintage join leaves every CT record unmatched.
+Use with ACS microdata on 2020-Census PUMAs: the 2020-2024 ACS 5-year (IPUMS
+`us2024c`) and later 2020-PUMA samples.
 
 Rebuild the key from IPUMS/ACS `STATEFIP` and `PUMA`, then left-join:
 
