@@ -1,154 +1,104 @@
 # PUMA-to-CBSA Crosswalk
 
-A standalone, single-source-of-truth build of the **PUMA -> CBSA crosswalk** used
-in the AEI Housing Center's replication of the [NLIHC Gap Report
-2026](https://nlihc.org/gap). It assigns every Census **PUMA** (Public Use
-Microdata Area) to a **CBSA** (Core-Based Statistical Area, i.e. a metropolitan or
-micropolitan area) so that ACS microdata keyed to PUMAs can be rolled up to metro
-geographies.
+Assigns every Census PUMA (Public Use Microdata Area) to a CBSA (a metropolitan
+or micropolitan area), so ACS microdata keyed to PUMAs can be aggregated to
+metro geographies.
 
-The crosswalk is the deliverable. It lives, already built, at
-[`data/output/puma_cbsa_crosswalk.parquet`](data/output/puma_cbsa_crosswalk.parquet)
-and [`.csv`](data/output/puma_cbsa_crosswalk.csv) -- you can consume it directly
-without running any R. The build is **fully offline and deterministic**: three
-small input files in [`data/source/`](data/source/) reproduce it exactly, with no
-downloads or API keys.
+This crosswalk was built to replicate the geographic approach in the National
+Low Income Housing Coalition's report *The Gap: A Shortage of Affordable Homes*.
+The methodology is NLIHC's; please cite them (see [Citation](#citation)).
 
-> Extracted from the AEI Housing Center gap-report project so future projects can
-> depend on one authoritative crosswalk. Rebuild any time with `Rscript build.R`.
+The built crosswalk is in [`data/output/`](data/output/) as parquet and CSV, so
+you can use it without running R. The build reads three files in
+[`data/source/`](data/source/) and needs no network access.
 
-## What it contains
+## Columns
 
-One row per PUMA (2,486 rows), keyed by `puma_id`. Each row gives the PUMA's
-assigned CBSA (or non-metropolitan), the population overlap that justified the
-assignment, and metro-vs-micro status. Full column definitions and headline
-counts are in [`data/output/data_dictionary.md`](data/output/data_dictionary.md).
+One row per PUMA (2,486 rows), keyed by `puma_id`. Full definitions are in
+[`data/output/data_dictionary.md`](data/output/data_dictionary.md).
 
 | Column | Meaning |
-| ------ | ------- |
-| `puma_id` | 7-char join key = `statefip`(2) + `puma`(5), zero-padded |
+| --- | --- |
+| `puma_id` | Join key: `statefip` (2) + `puma` (5), zero-padded |
 | `statefip`, `puma` | State FIPS and PUMA code (2022 vintage) |
-| `puma_name`, `cbsa`, `cbsa_name` | Names and assigned CBSA code (2020 vintage); `cbsa` is `NA` and `cbsa_name` is `"Non-metropolitan"` when unassigned |
-| `overlap_pct` | PUMA population share in the assigned CBSA, in [0.50, 1.00] |
-| `is_metro` | in any CBSA (metro OR micro) |
-| `is_micro` | micropolitan only (OMB type M2) |
+| `puma_name`, `cbsa`, `cbsa_name` | Names and assigned CBSA (2020 vintage). `cbsa` is `NA` and `cbsa_name` is "Non-metropolitan" when unassigned |
+| `overlap_pct` | PUMA population share in the assigned CBSA (0.50 to 1.00) |
+| `is_metro` | In any CBSA (metropolitan or micropolitan) |
+| `is_micro` | Micropolitan only |
 
-True metropolitan PUMAs are `is_metro & !is_micro`.
+Metropolitan PUMAs are `is_metro & !is_micro`.
 
-## Using the crosswalk
+## Using it
 
-**From IPUMS / ACS microdata** -- rebuild the same 7-character key from `STATEFIP`
-and `PUMA`, then left-join:
+Rebuild the key from IPUMS/ACS `STATEFIP` and `PUMA`, then left-join:
 
 ```r
 library(dplyr); library(stringr); library(arrow)
 xwalk <- read_parquet("data/output/puma_cbsa_crosswalk.parquet")
 
 acs |>
-  mutate(puma_id = paste0(
-    str_pad(STATEFIP, 2, "left", "0"),
-    str_pad(PUMA,     5, "left", "0")
-  )) |>
-  left_join(xwalk, by = "puma_id")   # non-metro / unmatched PUMAs keep cbsa = NA
+  mutate(puma_id = paste0(str_pad(STATEFIP, 2, "left", "0"),
+                          str_pad(PUMA, 5, "left", "0"))) |>
+  left_join(xwalk, by = "puma_id")
 ```
 
-Always **left**-join so records in non-metropolitan PUMAs are preserved (they
-carry `cbsa = NA`), not dropped.
-
-**Which PUMAs make up a CBSA?** The file is one-row-per-PUMA; group by `cbsa` to
-invert it:
-
-```r
-xwalk |> filter(cbsa == "31080") |> select(puma_id, puma_name, overlap_pct)
-# all PUMAs assigned to Los Angeles-Long Beach-Anaheim, CA
-```
-
-**Non-R consumers** can read `data/output/puma_cbsa_crosswalk.csv` directly.
+Use a left join so records in non-metro PUMAs (which have `cbsa = NA`) are kept.
+To list the PUMAs in a CBSA, filter on `cbsa`. Non-R users can read the CSV.
 
 ## Rebuilding
 
 ```bash
 Rscript build.R        # writes data/output/{parquet,csv}
-Rscript run_tests.R    # checks the crosswalk invariants
+Rscript run_tests.R    # checks the crosswalk
 ```
 
-Everything that can vary between vintages -- input paths, the 50% threshold, the
-Connecticut state FIPS -- lives in [`config.R`](config.R). Edit it, re-run
-`build.R`, and the crosswalk is regenerated. The build takes a few seconds.
+Paths, the 50% threshold, and the Connecticut PUMA list are set in
+[`config.R`](config.R).
 
-## Methodology
+## Method
 
-1. **50% population rule.** [Geocorr
-   2022](https://mcdc.missouri.edu/applications/geocorr2022.html) gives, for each
-   2022 PUMA, the 2020-Census population share falling in each 2020-vintage CBSA.
-   Each PUMA is assigned to the single CBSA holding **>= 50%** of its population;
-   otherwise it is non-metropolitan. `overlap_pct` records that winning share.
-2. **Connecticut patch.** Geocorr 2022 lacks Connecticut, which replaced counties
-   with nine planning regions (Councils of Governments) as its county-equivalents
-   in 2022. CT is therefore dropped from Geocorr and rebuilt from IPUMS USA's
-   MSA2023-PUMA2020 crosswalk. The 25 CT PUMAs are enumerated in
-   `R/build_crosswalk.R` so any absent from that crosswalk are emitted as
-   non-metropolitan.
-3. **Metro vs micro.** Metropolitan (OMB type M1) vs micropolitan (M2) status
-   comes from the OMB July 2023 delineation file. (The parent pipeline read this
-   from a live `tigris` download; this repo reads the bundled delineation file
-   instead, for offline reproducibility -- the two yield identical `is_micro`
-   values.)
+1. Geocorr 2022 gives each 2022 PUMA's population share in each 2020 CBSA. A
+   PUMA is assigned to the CBSA holding at least 50% of its population;
+   otherwise it is non-metro. `overlap_pct` is that share.
+2. Geocorr 2022 omits Connecticut, which replaced counties with nine planning
+   regions in 2022. CT is taken from IPUMS USA's MSA2023-PUMA2020 crosswalk;
+   its 25 PUMAs are listed in `config.R`.
+3. Metropolitan vs micropolitan status is read from the OMB July 2023
+   delineation file.
 
-## Vintages and reproducibility
+## Vintages
 
 | Element | Vintage | Source |
-| ------- | ------- | ------ |
-| PUMA geography | 2022 (2020-Census based) | Geocorr `puma22` |
-| CBSA assignment | 2020 OMB delineation | Geocorr `cbsa20` |
-| Metro/micro type | 2023 OMB delineation | `delineation_2023.xlsx` |
-| Intended ACS sample | 2020-2024 ACS 5-year (IPUMS `us2024c`) | -- |
+| --- | --- | --- |
+| PUMA geography | 2022 | Geocorr `puma22` |
+| CBSA assignment | 2020 | Geocorr `cbsa20` |
+| Metro/micro type | 2023 | OMB delineation |
+| ACS sample | 2020-2024 5-year | IPUMS `us2024c` |
 
-These are pinned to the FY2023 HUD / 2020-2024 ACS run that the NLIHC Gap Report
-2026 benchmarks were computed against. The Connecticut PUMA list and the metro/
-micro delineation year are the knobs to revisit after the 2030 PUMA
-reapportionment. Note the mild vintage seam documented in the data dictionary:
-16 CBSAs assigned from the 2020 delineation are absent from the 2023 delineation,
-so 35 PUMAs carry `is_micro = NA` (metropolitan status assigned, micro/metro split
-unavailable) -- reproduced faithfully from the parent pipeline.
+Sixteen CBSAs assigned from the 2020 delineation are absent from the 2023
+delineation, so 35 PUMAs have `is_micro = NA` (metro status assigned; the
+metro/micro split is unknown). See the data dictionary.
 
 ## Dependencies
 
-R >= 4.3 and: `arrow`, `dplyr`, `readr`, `readxl`, `stringr`, `here` (plus
-`testthat` for the tests). No `sf` or `tigris` -- the build is offline.
+R >= 4.3 with `arrow`, `dplyr`, `readr`, `readxl`, `stringr`, `here`, and
+`testthat` for the tests:
 
 ```r
 install.packages(c("arrow", "dplyr", "readr", "readxl", "stringr", "here", "testthat"))
 ```
 
-## Layout
+## Citation
 
-```
-puma_cbsa_crosswalk/
-  config.R                 # vintages, paths, and the 50% rule (edit here)
-  build.R                  # entry point: build + write parquet/csv
-  R/build_crosswalk.R      # the build logic
-  data/
-    source/                # 3 bundled inputs (+ provenance README)
-    output/                # the committed crosswalk (parquet + csv + dictionary)
-  tests/testthat/          # invariant tests
-  run_tests.R
-```
+This crosswalk supports a replication of NLIHC's methodology. Cite the report:
 
-## Sharing
+> National Low Income Housing Coalition. *The Gap: A Shortage of Affordable
+> Homes.* Washington, DC. https://nlihc.org/gap
 
-This is a self-contained git repository. To publish it, add a remote and push:
+Data sources: Geocorr 2022 (Missouri Census Data Center); CBSA delineation
+(U.S. Census Bureau / OMB); Connecticut crosswalk (IPUMS USA,
+https://usa.ipums.org/usa/terms.shtml).
 
-```bash
-git remote add origin <your-remote-url>
-git push -u origin main
-```
+## License
 
-## License and attribution
-
-Code is MIT-licensed (see [LICENSE](LICENSE)). Methodology follows the NLIHC *Gap*
-report. Geocorr is provided by the Missouri Census Data Center; the delineation
-file is U.S. Census Bureau / OMB (public domain); the Connecticut crosswalk is
-distributed by IPUMS USA under its
-[terms of use](https://usa.ipums.org/usa/terms.shtml). Built by the AEI Housing
-Center.
+Code is MIT-licensed (see [LICENSE](LICENSE)). Built by the AEI Housing Center.

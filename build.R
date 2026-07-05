@@ -28,7 +28,8 @@ crosswalk <- build_puma_cbsa_crosswalk(
   ipums_ct_path    = here(IPUMS_CT_FILE),
   delineation_path = here(DELINEATION_FILE),
   pop_threshold    = PUMA_POP_THRESHOLD,
-  ct_statefip      = CT_STATEFIP
+  ct_statefip      = CT_STATEFIP,
+  ct_pumas         = CT_PUMAS_2020
 )
 
 # --- Write both deliverable formats ------------------------------------------

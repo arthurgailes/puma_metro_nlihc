@@ -13,10 +13,7 @@ source(here("config.R"))
 xw <- arrow::read_parquet(here(OUTPUT_PARQUET))
 
 test_that("schema: required columns are present", {
-  expect_true(all(c(
-    "puma_id", "statefip", "puma", "puma_name",
-    "cbsa", "cbsa_name", "overlap_pct", "is_metro", "is_micro"
-  ) %in% names(xw)))
+  expect_true(all(CROSSWALK_COLS %in% names(xw)))
 })
 
 test_that("coverage: > 2,400 PUMAs, one unique row each", {
