@@ -30,6 +30,11 @@ Metropolitan PUMAs are `is_metro & !is_micro`.
 
 ## Using it
 
+**Join only to ACS microdata coded to 2020-Census PUMAs** -- the 2020-2024 ACS
+5-year sample this was built for (IPUMS `us2024c`), or another ACS sample that
+uses 2020 PUMAs. ACS data on the older 2010-based PUMAs (5-year samples through
+2018-2022) will not match `puma_id` and must not be used.
+
 Rebuild the key from IPUMS/ACS `STATEFIP` and `PUMA`, then left-join:
 
 ```r
@@ -42,8 +47,12 @@ acs |>
   left_join(xwalk, by = "puma_id")
 ```
 
-Use a left join so records in non-metro PUMAs (which have `cbsa = NA`) are kept.
-To list the PUMAs in a CBSA, filter on `cbsa`. Non-R users can read the CSV.
+Use a left join so records in non-metro PUMAs (`cbsa = NA`) are kept. To list
+the PUMAs in a CBSA, filter on `cbsa`. Non-R users can read the CSV.
+
+Each PUMA is assigned whole to one CBSA, so metro totals from the crosswalk are
+approximate: a PUMA that straddles a metro boundary is counted entirely inside
+or outside it. `overlap_pct` shows how clean each assignment is.
 
 ## Rebuilding
 
@@ -75,44 +84,12 @@ Paths, the 50% threshold, and the Connecticut PUMA list are set in
 | Metro/micro type | 2023 | OMB delineation |
 | ACS sample | 2020-2024 5-year | IPUMS `us2024c` |
 
+The 2020-Census PUMAs used here are current for ACS samples from 2022 through
+the rest of the decade, until the 2030 reapportionment introduces new PUMAs.
+
 Sixteen CBSAs assigned from the 2020 delineation are absent from the 2023
 delineation, so 35 PUMAs have `is_micro = NA` (metro status assigned; the
 metro/micro split is unknown). See the data dictionary.
-
-## Caveats
-
-The crosswalk is one row per PUMA, so a left join never duplicates your
-microdata rows. The cautions below are about geographic approximation and
-vintage alignment, not join fan-out.
-
-- **Whole-PUMA assignment approximates metros.** Each PUMA is assigned entirely
-  to one CBSA (or to none), even when it straddles a metro boundary. A metro
-  gains the full population of every PUMA assigned to it -- including any part
-  that lives outside the CBSA -- and loses PUMAs that fall below the 50%
-  threshold. Metro counts are close to, but will not exactly equal, published
-  CBSA totals. `overlap_pct` shows how clean each assignment is: a PUMA at 0.51
-  is far more approximate than one at 1.00.
-- **Non-metro is a residual, not a place.** `cbsa = NA` ("Non-metropolitan")
-  pools genuinely rural PUMAs with split PUMAs that cleared 50% for no single
-  CBSA, so non-metro counts absorb the leakage from the point above and are
-  correspondingly overstated.
-- **Match the PUMA vintage to your data.** `puma_id` uses 2022
-  (2020-Census-based) PUMAs, which match the 2020-2024 ACS 5-year and later
-  5-year samples built on 2020 PUMAs. Joining to ACS data on a different PUMA
-  vintage (for example 2010-based PUMAs) silently drops or mis-maps rows and
-  corrupts any count. Confirm your sample's PUMA vintage first.
-- **Handle `is_micro = NA` when splitting metro from micro.** 35 PUMAs (16
-  CBSAs) have `is_micro = NA` (see Vintages). `is_metro & !is_micro` returns NA
-  for them, so a strict metropolitan filter drops them; use
-  `is_metro & (is.na(is_micro) | !is_micro)` or decide explicitly how to count
-  them.
-- **Connecticut uses a different source.** CT assignments come from the IPUMS
-  MSA2023-PUMA2020 crosswalk (each PUMA mapped wholesale to one MSA), not the
-  Geocorr 50% rule, and its `overlap_pct` is an IPUMS population percentage. CT
-  metro assignments are not strictly comparable to the other states'.
-- **CBSA level only.** Multi-division metros such as New York and Los Angeles
-  are assigned at the CBSA level, not by metropolitan division; this crosswalk
-  cannot split a CBSA into divisions.
 
 ## Dependencies
 
