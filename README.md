@@ -30,8 +30,8 @@ Metropolitan PUMAs are `is_metro & !is_micro`.
 
 ## Using it
 
-Use with any ACS microdata on 2020-Census PUMAs -- the 2022 ACS 1-year onward,
-or a 5-year sample such as the 2020-2024 (IPUMS `us2024c`) this was built for.
+Use with any ACS microdata on 2022 PUMAs -- the 2022 ACS 1-year onward, or a
+5-year sample such as the 2020-2024 (IPUMS `us2024c`) this was built for.
 
 Rebuild the key from IPUMS/ACS `STATEFIP` and `PUMA`, then left-join:
 
@@ -82,9 +82,9 @@ Paths, the 50% threshold, and the Connecticut PUMA list are set in
 | Metro/micro type | 2023 | OMB delineation |
 | ACS sample | 2020-2024 5-year | IPUMS `us2024c` |
 
-The 2020-Census PUMAs used here are current for ACS microdata built on 2020
-PUMAs -- the 2022 ACS 1-year, the 2020-2024 5-year, and later releases -- until
-the 2030 reapportionment introduces new PUMAs.
+The 2022 PUMAs used here are current for ACS microdata from the 2022 ACS 1-year
+and the 2020-2024 5-year onward, until the 2030 reapportionment introduces new
+PUMAs.
 
 Sixteen CBSAs assigned from the 2020 delineation are absent from the 2023
 delineation, so 35 PUMAs have `is_micro = NA` (metro status assigned; the
